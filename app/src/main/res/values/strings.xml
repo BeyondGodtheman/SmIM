@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">首媒IM系统</string>
+    <string name="username">用户名</string>
+    <string name="password">密码</string>
+    <string name="login">登录</string>
+    <string name="login_out">退出登录</string>
+    <string name="roomCode">房间ID</string>
+    <string name="inputMessage">输入消息</string>
+    <string name="send">发送</string>
+    <string name="me">我的</string>
+    <string name="message">消息</string>
+    <string name="contact">联系人</string>
+    <string name="attach_take_pic">Capture</string>
+</resources>
