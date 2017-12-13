@@ -20,15 +20,17 @@ class DBManager {
     /**
      * 存储聊天记录
      */
-    fun saveMessage(messageChat: Message<Chat>) {
+    fun saveMessage(messageChat: Chat) {
         val contentValues = ContentValues()
         contentValues.put("MessageId", messageChat.messageId)
-        contentValues.put("From", messageChat.from)
-        contentValues.put("Timestamp", messageChat.playload?.timestamp)
-        contentValues.put("To", messageChat.to)
-        contentValues.put("Content", messageChat.playload?.content)
-        contentValues.put("State", messageChat.playload?.state)
-        contentValues.put("ContentType", messageChat.playload?.content_type?.type)
+        contentValues.put("Subtype", messageChat.subType)
+        contentValues.put("From_", messageChat.from)
+        contentValues.put("Timestamp", messageChat.payload.timestamp)
+        contentValues.put("To_", messageChat.to)
+        contentValues.put("Content", messageChat.payload.content)
+        contentValues.put("State", messageChat.state)
+        contentValues.put("ContentType", messageChat.payload.content_type)
+        contentValues.put("Type", messageChat.type)
         db?.insert(dbConfig.chatTabName, null, contentValues)
     }
 
@@ -36,23 +38,22 @@ class DBManager {
     /**
      * 批量存储聊天记录
      */
-    fun saveMessage(chatList: List<Message<Chat>>) {
+    fun saveMessage(chatList: List<Chat>) {
         //手动设置开始事务
         db?.beginTransaction()
         chatList.forEach {
             val contentValues = ContentValues()
-
             contentValues.put("MessageId", it.messageId)
-            contentValues.put("Subtype", it.subtype.type)
-            contentValues.put("From", it.from)
-            contentValues.put("Timestamp", it.playload?.timestamp)
-            contentValues.put("To", it.to)
-            contentValues.put("Content", it.playload?.content)
-            contentValues.put("State", it.playload?.state)
-            contentValues.put("ContentType", it.playload?.content_type?.type)
+            contentValues.put("Subtype", it.subType)
+            contentValues.put("From_", it.from)
+            contentValues.put("Timestamp", it.payload.timestamp)
+            contentValues.put("To_", it.to)
+            contentValues.put("Content", it.payload.content)
+            contentValues.put("State", it.state)
+            contentValues.put("ContentType", it.payload.content_type)
             contentValues.put("Type", it.type)
             db?.insert(dbConfig.chatTabName, null, contentValues)
-            LogUtils.i("批量存储聊天信息：" + it.playload?.content)
+            LogUtils.i("批量存储聊天信息：" + it.payload.content)
         }
         db?.setTransactionSuccessful()// 设置事务处理成功，不设置会自动回滚不提交
         db?.endTransaction() // 处理完成
@@ -62,28 +63,24 @@ class DBManager {
     /**
      * 查询聊天记录
      */
-    fun queryMessage(username: String, page: Int): ArrayList<Message<Chat>> {
-        val messageChats = arrayListOf<Message<Chat>>()
-        val sql = "SELECT * FROM ${dbConfig.chatTabName} WHERE Room_code='$username'"
+    fun queryMessage(username: String, page: Int): ArrayList<Chat> {
+        val messageChats = arrayListOf<Chat>()
+        val sql = "SELECT * FROM ${dbConfig.chatTabName} WHERE From_='$username' OR To_='$username'"
         val cursor = db?.rawQuery(sql, null)
         cursor?.let {
             while (it.moveToNext()) {
-                val messageChat = Message<Chat>()
-
-                messageChat.messageId = it.getString(it.getColumnIndex("MessageId"))
-                messageChat.subtype = MessageType.valueOf(it.getString(it.getColumnIndex("Subtype")))
-                messageChat.from = it.getString(it.getColumnIndex("From"))
-                messageChat.to = it.getString(it.getColumnIndex("To"))
-                messageChat.type = it.getString(it.getColumnIndex("Type"))
-
                 val chat = Chat()
+                chat.messageId = it.getString(it.getColumnIndex("MessageId"))
+                chat.subType = it.getString(it.getColumnIndex("Subtype"))
+                chat.from = it.getString(it.getColumnIndex("From_"))
+                chat.payload.timestamp = it.getString(it.getColumnIndex("Timestamp")).toLong()
+                chat.to = it.getString(it.getColumnIndex("To_"))
+                chat.payload.content = it.getString(it.getColumnIndex("Content"))
                 chat.state = it.getString(it.getColumnIndex("State")).toBoolean()
-                chat.content = it.getString(it.getColumnIndex("Content"))
-                chat.timestamp = it.getString(it.getColumnIndex("Timestamp")).toLong()
-                chat.content_type = ContentType.valueOf(it.getString(it.getColumnIndex("ContentType")))
-                messageChat.playload = chat
+                chat.payload.content_type = it.getString(it.getColumnIndex("ContentType"))
+                chat.type = it.getString(it.getColumnIndex("Type"))
 
-                messageChats.add(messageChat)
+                messageChats.add(chat)
             }
         }
 
@@ -119,6 +116,16 @@ class DBManager {
 
     fun updateContact(nikename: String) {
 //        db?.update(dbConfig.contactName, )
+    }
+
+
+    /**
+     * 更新消息状态
+     */
+    fun updateChatState(messageId: String) {
+        val content = ContentValues()
+        content.put("State", true)
+        db?.update(dbConfig.chatTabName, content, "MessageId=?", arrayOf(messageId))
     }
 
 

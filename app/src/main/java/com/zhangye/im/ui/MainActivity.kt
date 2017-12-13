@@ -26,7 +26,7 @@ class MainActivity : AppCompatActivity(), OnConnListener {
 
             when (checkedId) {
                 group.getChildAt(0).id -> {
-                    Toast.makeText(this, "你好1", Toast.LENGTH_SHORT).show()
+                    supportFragmentManager.beginTransaction().replace(R.id.fl_content, ConverseFragment()).commit()
                 }
 
                 group.getChildAt(1).id -> {
@@ -47,11 +47,13 @@ class MainActivity : AppCompatActivity(), OnConnListener {
 
     override fun onError(code: Int, msg: String) {
 
-        if (code == Constants.TOKEN_ERROR) {
+        if (code == Constants.LOGOUT) {
             SMClient.getInstance().userManager.loginOut()
             startActivity(Intent(this@MainActivity, LoginActivity::class.java))
             finish()
         }
+
+        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
 
     }
 

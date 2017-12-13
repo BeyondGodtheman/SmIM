@@ -3,7 +3,6 @@ package com.zhangye.im.utils
 import android.content.Intent
 import com.cocosh.shmstore.utils.LogUtils
 import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
 import com.zhangye.im.MyApplication
 import com.zhangye.im.SMClient
 import com.zhangye.im.`interface`.OnConnListener
@@ -14,7 +13,6 @@ import okhttp3.Response
 import okhttp3.WebSocket
 import okhttp3.WebSocketListener
 import okio.ByteString
-import org.json.JSONObject
 import java.io.EOFException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
@@ -31,8 +29,10 @@ class WebSocketManager {
     var isConnection = false
     var isOnline = false
     var isSend = false
-    private val messageMap = HashMap<String, ArrayList<Message<Chat>>>()
-    private val messageQueue = LinkedBlockingQueue<Message<Chat>>() //消息列队
+    private val messageMap = HashMap<String, ArrayList<Chat>>()
+    private val messageQueue = LinkedBlockingQueue<Chat>() //消息列队
+    private val converseList = arrayListOf<Chat>() //会话列表
+    private val contactList = arrayListOf<Contacts.Payload.Contact>()
 
     val gJson = Gson()
     var connListener: OnConnListener? = null //连接IM回调
@@ -71,9 +71,7 @@ class WebSocketManager {
 
 
                 LogUtils.i("连接异常:" + t)
-
                 connListener?.onError(0, t.toString())
-//                failure()
             }
 
             override fun onMessage(webSocket: WebSocket?, messageStr: String) {
@@ -81,12 +79,12 @@ class WebSocketManager {
                 val message = gJson.fromJson(messageStr, Message::class.java)
 
                 /**
-                 * 连接发生错误
+                 * 发生错误
                  */
                 if (message.type == Type.ERROR.type) {
                     val error = gJson.fromJson(messageStr, Error::class.java)
-                    LogUtils.i("收到服务器错误消息：${error.error_message}")
-                    connListener?.onError(error.error_code, error.error_message)
+                    LogUtils.i("收到错误消息：${error.payload.message}")
+                    connListener?.onError(error.payload.code, error.payload.message)
                 }
 
 
@@ -107,10 +105,10 @@ class WebSocketManager {
                  */
                 if (message.type == Type.MESSAGE.type) {
 
-                    if (message.subtype == MessageType.CHAT) {
-                        val messageChat = gJson.fromJson<Message<Chat>>(messageStr, object : TypeToken<Message<Chat>>() {}.type)
+                    if (message.subType == MessageType.CHAT.type) {
+                        val messageChat = gJson.fromJson(messageStr, Chat::class.java)
                         addMessage(messageChat)
-
+                        addConverse(messageChat)
                     }
                 }
 
@@ -122,11 +120,12 @@ class WebSocketManager {
 
                     //联系人查询结果
                     if (iq.action.entity == EntityType.ROSTER.type) {
-
                         val contacts = gJson.fromJson(messageStr, Contacts::class.java)
                         LogUtils.i("联系人数据：$contacts")
-                        contactListener?.onContact(contacts)
-                        contactListener = null
+                        contactList.clear()
+                        contactList.addAll(contacts.payload.addList)
+                        contactList.removeAll(contacts.payload.removeList)
+                        notifyMessage()
                     }
 
                     //查询离消息结果
@@ -147,11 +146,16 @@ class WebSocketManager {
                 } else {
                     //服务器接收到消息返回的ACK
                     val ack = gJson.fromJson(messageStr, Ack::class.java)
-                    if (messageQueue.peek().messageId == ack.messageId) {
-                        messageQueue.take()
-                        isSend = false
-                        LogUtils.i("消息发送成功，从消息列队移除：" + message)
+                    val msg = messageQueue.peek()
+                    //ACK为当前消息列队所发送的message
+                    if (msg.messageId == ack.messageId) {
+                        messageMap[msg.to]?.first { msg.messageId == it.messageId }?.state = true //修改发送状态
+                        SMClient.getInstance().dbManager.updateChatState(msg.messageId)
                     }
+                    messageQueue.take()
+                    notifyMessage()
+                    isSend = false
+                    LogUtils.i("消息发送成功，从消息列队移除：" + message)
                 }
 
             }
@@ -214,45 +218,38 @@ class WebSocketManager {
     /**
      * 发送消息
      */
-    fun sendMessage(userName: String, message: String): Message<Chat>? {
+    fun sendMessage(userName: String, message: String) {
         if (isConnection && isOnline) {
-            val messageChat = Message<Chat>()
-            messageChat.to = userName
             val chat = Chat()
-            chat.content = message
-            messageChat.playload = chat
+            chat.to = userName
+            chat.payload.content = message
+
             if (messageMap[userName] == null) {
                 messageMap.put(userName, ArrayList())
             }
-            messageMap[userName]?.add(messageChat)
-            SMClient.getInstance().dbManager.saveMessage(messageChat) //保存消息到数据库
-            messageQueue.put(messageChat)
+
+            messageMap[userName]?.add(chat)
+            addConverse(chat)
+            SMClient.getInstance().dbManager.saveMessage(chat) //保存消息到数据库
+            messageQueue.put(chat)
             notifyMessage()
-            return messageChat
         } else {
             LogUtils.i("离线状态无法发送")
         }
-        return null
     }
 
     /**
      * 查询联系人
      */
-    fun queryContact(contactListener: OnContactListener) {
-        this.contactListener = contactListener
+    fun queryContact() {
         if (isConnection && isOnline) {
-            val iQ = IQ(IQType.GET, EntityType.ROSTER, OperationType.LIST)
+            val iQ = IQ.IQContacts(IQType.GET, EntityType.ROSTER, OperationType.LIST)
             val json = gJson.toJson(iQ)
-            val jsonObj = JSONObject(json)
-            val playLoad = JSONObject()
-            playLoad.put("version", "-1")
-            jsonObj.put("payload", playLoad)
-            webSocket?.send(jsonObj.toString())
-            LogUtils.i("拉取联系人信息:" + jsonObj)
+            webSocket?.send(json)
+            LogUtils.i("拉取联系人信息:" + json)
         } else {
             LogUtils.i("连接异常或未出席成功")
         }
-
     }
 
 
@@ -261,6 +258,18 @@ class WebSocketManager {
      */
     fun addRouste() {
 
+    }
+
+    /**
+     * 将最新消息放入会话列表
+     */
+    private fun addConverse(messageChat: Chat) {
+        if (converseList.contains(messageChat)) {
+            converseList[converseList.indexOf(messageChat)] = messageChat
+        } else {
+            converseList.add(messageChat)
+        }
+        notifyMessage()
     }
 
 
@@ -278,7 +287,7 @@ class WebSocketManager {
     /**
      * 获取消息集合
      */
-    fun getMessageList(nickName: String): ArrayList<Message<Chat>> {
+    fun getMessageList(nickName: String): ArrayList<Chat> {
         messageMap[nickName]?.let {
             return it
         }
@@ -289,6 +298,11 @@ class WebSocketManager {
     }
 
 
+    fun getConverseList(): ArrayList<Chat> = converseList
+
+    fun getContactList():ArrayList<Contacts.Payload.Contact> = contactList
+
+
     private fun notifyMessage() {
         val intent = Intent(Constants.BROADCAST_NEW_MESSAGE)
         MyApplication.instance.sendBroadcast(intent)
@@ -297,14 +311,11 @@ class WebSocketManager {
     /**
      * 添加消息并刷新
      */
-    fun addMessage(messageChat: Message<Chat>) {
-
-//        DBManager.instance?.saveMessage(message) //保存消息到数据库
-
+    fun addMessage(messageChat: Chat) {
+        SMClient.getInstance().dbManager.saveMessage(messageChat) //保存消息到数据库
         val username = messageChat.from
-
         if (messageMap[username] == null) {
-            val messageList = ArrayList<Message<Chat>>()
+            val messageList = ArrayList<Chat>()
             messageList.add(messageChat)
             messageMap.put(username, messageList)
         } else {
@@ -319,13 +330,13 @@ class WebSocketManager {
      */
     fun loopChat() {
         thread {
-            while (isOnline) {
+            while (isConnection && isOnline) {
                 //非阻塞状态发送消息
                 if (!isSend) {
                     if (messageQueue.size > 0) {
-                        val chatMessage = messageQueue.peek()
-                        LogUtils.i("发送消息：$chatMessage")
-                        webSocket?.send(gJson.toJson(chatMessage))
+                        val msg = gJson.toJson(messageQueue.peek())
+                        LogUtils.i("发送消息：$msg")
+                        webSocket?.send(msg)
                         isSend = true
                     }
                     //进入阻塞等待ACK

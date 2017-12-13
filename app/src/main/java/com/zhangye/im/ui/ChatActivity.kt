@@ -9,15 +9,11 @@ import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.view.MotionEvent
 import android.view.View
-import android.view.inputmethod.EditorInfo
-import android.widget.Toast
 import com.cocosh.shmstore.utils.LogUtils
 import com.zhangye.im.R
 import com.zhangye.im.SMClient
 import com.zhangye.im.adapter.ChatAdapter
-import com.zhangye.im.model.Chat
 import com.zhangye.im.model.Emoj
-import com.zhangye.im.model.Message
 import com.zhangye.im.utils.Constants
 import com.zhangye.im.widget.ChatInputMenu
 import kotlinx.android.synthetic.main.activity_chat.*
@@ -35,31 +31,29 @@ class ChatActivity : AppCompatActivity() {
         setContentView(R.layout.activity_chat)
 
         val userName = intent.getStringExtra("userName")
-        val tenantDomain = intent.getStringExtra("tenantDomain")
+        val tenantDomain = intent.getStringExtra("tenantDomain") ?: "shoumeiapp.com"
+        val fqdnName = if (!userName.contains("@")) "$userName@$tenantDomain" else userName
 
         messageReceiver = MessageReceiver()
         val intentFilter = IntentFilter(Constants.BROADCAST_NEW_MESSAGE)
         registerReceiver(messageReceiver, intentFilter)
 
         recycleView.layoutManager = LinearLayoutManager(this)
-//        val adapter = ChatAdapter(SMClient.getInstance().webSocketManager.getMessageList(userName))
-        val adapter = ChatAdapter(ArrayList())
+        val adapter = ChatAdapter(SMClient.getInstance().webSocketManager.getMessageList(fqdnName))
         recycleView.adapter = adapter
         recycleView.scrollToPosition(recycleView.adapter.itemCount - 1)
 
-        input_menu.initMenu(null)
+        input_menu.initMenu(null) //初始化菜单
         input_menu.setChatInputMenuListener(object : ChatInputMenu.ChatInputMenuListener {
             override fun onSendMessage(content: String) {
-                LogUtils.i("发送的消息:$content")
 
+                //空消息事件拦截
                 if (content.isBlank()) {
                     return
                 }
 
-                val message = SMClient.getInstance().webSocketManager.sendMessage("$userName@$tenantDomain", content)
-                message?.let {
-                    adapter.addItem(it)
-                }
+                SMClient.getInstance().webSocketManager.sendMessage(fqdnName, content)
+
 
 //                val messageChatMe = Message<Chat>()
 //                messageChatMe.playload = Chat()

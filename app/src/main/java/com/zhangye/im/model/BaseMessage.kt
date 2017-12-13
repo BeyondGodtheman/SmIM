@@ -5,7 +5,7 @@ import com.zhangye.im.utils.CodeUtils
 
 
 /**
- * 通讯发送消息的数据实体类
+ * 所有消息类型的父类
  * Created by 张野 on 2017/11/2.
  */
 open class BaseMessage {

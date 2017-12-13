@@ -7,6 +7,8 @@
     <item name="edt_password" type="id" />
 
     <item name="tv_name" type="id" />
+    <item name="tv_content" type="id" />
+    <item name="tv_time" type="id" />
     <item name="tv_code" type="id" />
     <item name="recycleView" type="id" />
 
@@ -15,4 +17,5 @@
     <item name="ll_sendMessage" type="id"/>
 
     <item name="fl_content" type="id"/>
+    <item name="iv_faild" type="id" />
 </resources>

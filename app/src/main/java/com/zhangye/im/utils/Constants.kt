@@ -6,10 +6,9 @@ package com.zhangye.im.utils
  */
 object Constants {
     var DEBUG = true
-    val HOST = if (DEBUG) "http://10.10.100.136:8080/" else ""
+    val HOST = if (DEBUG) "http://10.10.100.124:8080/" else ""
     val LOGIN = "app_manage/user/login"
-    val CONTACT = "app_manage/user/contact_list"
-    val TOKEN_ERROR = 108 //token失效
+    val LOGOUT = 103 //code":103,"message":"需要先登录，才能发消息"
 
     /*登录存储相关*/
     val IM_LOGIN_INFO = "im_login_info"

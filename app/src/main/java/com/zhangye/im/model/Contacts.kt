@@ -23,6 +23,12 @@ class Contacts(subType: IQType,
                 var status: String,
                 var version: Int
         )
+
+        override fun toString(): String {
+            return "Payload(version='$version', addList=$addList, removeList=$removeList)"
+        }
+
+
     }
 
     override fun toString(): String {

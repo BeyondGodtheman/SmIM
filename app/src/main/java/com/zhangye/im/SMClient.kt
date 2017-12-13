@@ -43,8 +43,8 @@ class SMClient private constructor() {
 
 
     //获取联系人列表
-    fun getContact(contactListener: OnContactListener) {
-        webSocketManager.queryContact(contactListener)
+    fun getContact() {
+        webSocketManager.queryContact()
     }
 
     fun close(){

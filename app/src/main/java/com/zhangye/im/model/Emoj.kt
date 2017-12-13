@@ -1,6 +1,7 @@
 package com.zhangye.im.model
 
 /**
+ * EMOJ表情的数据类
  * Created by zhangye on 2017/12/11.
  */
 class Emoj {

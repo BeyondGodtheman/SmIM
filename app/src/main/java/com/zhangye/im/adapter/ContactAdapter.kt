@@ -30,6 +30,7 @@ class ContactAdapter(private var contacts: ArrayList<Contact>) : RecyclerView.Ad
         holder.view.setOnClickListener({
             val intent = Intent(it.context, ChatActivity::class.java)
             intent.putExtra("userName", contacts[position].username)
+            intent.putExtra("tenantDomain", contacts[position].tenantDomain)
             it.context.startActivity(intent)
         })
     }
