@@ -5,6 +5,7 @@ import com.cocosh.shmstore.utils.LogUtils
 import com.google.gson.Gson
 import com.zhangye.im.MyApplication
 import com.zhangye.im.SMClient
+import com.zhangye.im.`interface`.OnAddFriendListener
 import com.zhangye.im.`interface`.OnConnListener
 import com.zhangye.im.`interface`.OnContactListener
 import com.zhangye.im.model.*
@@ -15,6 +16,7 @@ import okhttp3.WebSocketListener
 import okio.ByteString
 import java.io.EOFException
 import java.net.ConnectException
+import java.net.NoRouteToHostException
 import java.net.SocketTimeoutException
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
@@ -29,20 +31,26 @@ class WebSocketManager {
     var isConnection = false
     var isOnline = false
     var isSend = false
-    private val messageMap = HashMap<String, ArrayList<Chat>>()
+    //    private val messageMap = HashMap<String, ArrayList<Chat>>()
     private val messageQueue = LinkedBlockingQueue<Chat>() //消息列队
     private val converseList = arrayListOf<Chat>() //会话列表
     private val contactList = arrayListOf<Contacts.Payload.Contact>()
+    private val addFriends = arrayListOf<IQ.IQAddFriend>()
+    private val messageList = arrayListOf<Chat>() //消息列表
 
     val gJson = Gson()
     var connListener: OnConnListener? = null //连接IM回调
     var contactListener: OnContactListener? = null //获取联系人回调
+    var addFriendListener: OnAddFriendListener? = null //添加好友回调
     /**
      * 建立WebSocket连接
      */
     fun connect(mConnListener: OnConnListener?) {
+        if (SMClient.getInstance().userManager.getImUrl() == "") {
+            LogUtils.i("连接地址为null")
+            return
+        }
         this.connListener = mConnListener
-
         val request = Request.Builder().url(SMClient.getInstance().userManager.getImUrl()).build()
         HttpUtil.getClient().newWebSocket(request, object : WebSocketListener() {
 
@@ -56,22 +64,25 @@ class WebSocketManager {
             override fun onFailure(webSocket: WebSocket?, t: Throwable, response: Response?) {
 
                 if (t is ConnectException) {
-                    LogUtils.i("连接IM服务器失败" + t)
+                    connListener?.onError(0, "连接IM服务器失败")
                 }
                 if (t is SocketTimeoutException) {
-                    LogUtils.i("连接IM服务器超时" + t)
                     connect(connListener)
+                    connListener?.onError(0, "连接IM服务器超时")
                 }
 
                 if (t is EOFException) {
-                    LogUtils.i("服务器连接断开" + t)
+                    connListener?.onError(0, "服务器连接断开")
                     connect(connListener)
                 }
 
 
+                if (t is NoRouteToHostException) {
+                    connListener?.onError(Constants.LOGOUT, "服务器地址失效")
+                    connect(connListener)
+                }
 
                 LogUtils.i("连接异常:" + t)
-                connListener?.onError(0, t.toString())
             }
 
             override fun onMessage(webSocket: WebSocket?, messageStr: String) {
@@ -94,6 +105,10 @@ class WebSocketManager {
                 if (message.type == Type.PRESENT.type) {
                     isOnline = true
                     connListener?.onSuccess() //登录成功回调
+                    //查询会话列表
+                    queryConvers()
+                    //更新通讯录
+                    queryContact()
                     //查询离线消息
                     queryOffLine()
                     //轮循发送的消息列队
@@ -104,11 +119,27 @@ class WebSocketManager {
                  * 收到Msg消息
                  */
                 if (message.type == Type.MESSAGE.type) {
-
+                    //聊天消息
                     if (message.subType == MessageType.CHAT.type) {
                         val messageChat = gJson.fromJson(messageStr, Chat::class.java)
                         addMessage(messageChat)
-                        addConverse(messageChat)
+                    }
+                    //系统通知
+                    if (message.subType == MessageType.NOTICE.type) {
+                        val iQ = gJson.fromJson(messageStr, IQ::class.java)
+                        //好友相关
+                        if (iQ.action.entity == EntityType.ROSTER.type) {
+                            if (iQ.action.operation == OperationType.ADD.type) {
+                                //收到好友请求
+                                val addFriend = gJson.fromJson(messageStr, IQ.IQAddFriend::class.java)
+                                if (addFriends.contains(addFriend)) {
+                                    addFriends.remove(addFriend)
+                                }
+                                addFriends.add(0, addFriend)
+                                SMClient.getInstance().dbManager.saveAddFriend(addFriend)
+                                notifyMessage(Constants.BROADCAST_NEW_FRIEND)
+                            }
+                        }
                     }
                 }
 
@@ -118,21 +149,37 @@ class WebSocketManager {
                 if (message.type == Type.IQ.type) {
                     val iq = gJson.fromJson(messageStr, IQ::class.java)
 
-                    //联系人查询结果
+                    //联系人
                     if (iq.action.entity == EntityType.ROSTER.type) {
-                        val contacts = gJson.fromJson(messageStr, Contacts::class.java)
-                        LogUtils.i("联系人数据：$contacts")
-                        contactList.clear()
-                        contactList.addAll(contacts.payload.addList)
-                        contactList.removeAll(contacts.payload.removeList)
-                        notifyMessage()
+                        //查询结果
+                        if (iq.action.operation == OperationType.LIST.type) {
+                            val contacts = gJson.fromJson(messageStr, Contacts::class.java)
+                            //保存联系人版本号
+                            SMClient.getInstance().prefrencesManager.setContactVersion(contacts.payload.version)
+                            contactList.clear()
+                            SMClient.getInstance().dbManager.saveContact(contacts.payload.addList)
+                            SMClient.getInstance().dbManager.deleteContact(contacts.payload.removeList)
+                            contactList.addAll(SMClient.getInstance().dbManager.queryContacts())
+                            notifyMessage(Constants.BROADCAST_NEW_CONTACT)
+                        }
+
+                        if (iq.action.operation == OperationType.ADD.type) {
+                            LogUtils.i("好友请求发送成功")
+                            addFriendListener?.onAddFriendResult("好友请求发送成功")
+                            addFriendListener = null
+                        }
+
+                        if(iq.action.operation == OperationType.ANSWER.type){
+
+                            queryContact()
+                        }
                     }
 
                     //查询离消息结果
                     if (iq.action.entity == EntityType.OFFLINE.type) {
-                        val offLine = gJson.fromJson(messageStr, Offlines::class.java)
-//                        SMClient.getInstance().dbManager.saveMessage(offLine)
-                        LogUtils.i(offLine.toString())
+//                        val offLine = gJson.fromJson(messageStr, Offlines::class.java)
+//                        SMClient.getInstance().dbManager.saveMessage(offLine.payload.chatList[0].messageList)
+//                        LogUtils.i("离线消息结果" + offLine.toString())
                     }
                 }
 
@@ -144,18 +191,23 @@ class WebSocketManager {
                     LogUtils.i("发送ACK")
                     senAck(message.messageId)
                 } else {
-                    //服务器接收到消息返回的ACK
-                    val ack = gJson.fromJson(messageStr, Ack::class.java)
-                    val msg = messageQueue.peek()
-                    //ACK为当前消息列队所发送的message
-                    if (msg.messageId == ack.messageId) {
-                        messageMap[msg.to]?.first { msg.messageId == it.messageId }?.state = true //修改发送状态
-                        SMClient.getInstance().dbManager.updateChatState(msg.messageId)
+                    if (message.type == Type.ACK.type) {
+                        //服务器接收到消息返回的ACK
+                        val ack = gJson.fromJson(messageStr, Ack::class.java)
+                        val msg = messageQueue.peek()
+                        //ACK为当前消息列队所发送的message
+                        if (msg.messageId == ack.messageId) {
+                            messageList.first { msg.messageId == it.messageId }.state = true//修改发送状态
+//                        messageMap[msg.to]?.first { msg.messageId == it.messageId }?.state = true
+                            SMClient.getInstance().dbManager.updateChatState(msg.messageId)
+                            messageQueue.take()
+                            notifyMessage(Constants.BROADCAST_NEW_MESSAGE)
+                            isSend = false
+                            LogUtils.i("消息发送成功，从消息列队移除：" + message)
+
+                        }
                     }
-                    messageQueue.take()
-                    notifyMessage()
-                    isSend = false
-                    LogUtils.i("消息发送成功，从消息列队移除：" + message)
+
                 }
 
             }
@@ -179,15 +231,21 @@ class WebSocketManager {
     }
 
     /**
-     * 验证失败断开连接
+     * 退出
      */
     fun exitWebSocket() {
         webSocket?.close(1000, "logout")
         webSocket?.cancel()
-        messageMap.clear()
+//        messageMap.clear()
         isConnection = false
         isOnline = false
         connListener = null
+
+//        messageMap.clear()//消息列队
+        messageQueue.clear()//消息列队
+        converseList.clear()//会话列表
+        contactList.clear()//联系人列表
+
     }
 
 
@@ -216,23 +274,15 @@ class WebSocketManager {
 
 
     /**
-     * 发送消息
+     * 发送文字消息
      */
     fun sendMessage(userName: String, message: String) {
         if (isConnection && isOnline) {
             val chat = Chat()
             chat.to = userName
             chat.payload.content = message
-
-            if (messageMap[userName] == null) {
-                messageMap.put(userName, ArrayList())
-            }
-
-            messageMap[userName]?.add(chat)
-            addConverse(chat)
-            SMClient.getInstance().dbManager.saveMessage(chat) //保存消息到数据库
+            addMessage(chat)
             messageQueue.put(chat)
-            notifyMessage()
         } else {
             LogUtils.i("离线状态无法发送")
         }
@@ -243,7 +293,7 @@ class WebSocketManager {
      */
     fun queryContact() {
         if (isConnection && isOnline) {
-            val iQ = IQ.IQContacts(IQType.GET, EntityType.ROSTER, OperationType.LIST)
+            val iQ = IQ.IQContacts()
             val json = gJson.toJson(iQ)
             webSocket?.send(json)
             LogUtils.i("拉取联系人信息:" + json)
@@ -256,20 +306,26 @@ class WebSocketManager {
     /**
      * 添加好友
      */
-    fun addRouste() {
-
+    fun addFriend(username: String, msg: String, addFriendListener: OnAddFriendListener) {
+        this.addFriendListener = addFriendListener
+        val iQ = IQ.IQAddFriend()
+        iQ.payload.receiver = username + Constants.FQDN_NAME
+        iQ.payload.reason = msg
+        val json = gJson.toJson(iQ)
+        LogUtils.i("发送好友请求：" + json)
+        webSocket?.send(json)
     }
 
     /**
-     * 将最新消息放入会话列表
+     * 是否同意好友请求
      */
-    private fun addConverse(messageChat: Chat) {
-        if (converseList.contains(messageChat)) {
-            converseList[converseList.indexOf(messageChat)] = messageChat
-        } else {
-            converseList.add(messageChat)
-        }
-        notifyMessage()
+    fun answer(fqdnName: String, isAnswer: Boolean) {
+        val mAnswer = Answer()
+        mAnswer.payload.receiver = fqdnName
+        mAnswer.payload.answer = isAnswer
+        val json = gJson.toJson(mAnswer)
+        LogUtils.i("回复好友请求：" + json)
+        webSocket?.send(json)
     }
 
 
@@ -288,40 +344,71 @@ class WebSocketManager {
      * 获取消息集合
      */
     fun getMessageList(nickName: String): ArrayList<Chat> {
-        messageMap[nickName]?.let {
-            return it
+        messageList.clear()
+        messageList.addAll(SMClient.getInstance().dbManager.queryMessage(nickName, 0))
+        return messageList
+    }
+
+    /**
+     * 获取好友请求集合
+     */
+    fun getAddFriendList(): ArrayList<IQ.IQAddFriend> {
+        addFriends.clear()
+        addFriends.addAll(SMClient.getInstance().dbManager.queryAddFriend())
+        return addFriends
+    }
+
+
+    /**
+     * 将最新消息放入会话列表
+     */
+    private fun addConverse(messageChat: Chat) {
+
+        if (messageChat.from == SMClient.getInstance().userManager.getFqdnName()) {
+            messageChat.converse = messageChat.to
+        } else {
+            messageChat.converse = messageChat.from
         }
 
-        val msgList = SMClient.getInstance().dbManager.queryMessage(nickName, 0)
-        messageMap.put(nickName, msgList)
-        return msgList
+        SMClient.getInstance().dbManager.saveConverse(messageChat)
+
+        if (converseList.contains(messageChat)) {
+            converseList[converseList.indexOf(messageChat)] = messageChat
+        } else {
+            converseList.add(messageChat)
+        }
+        notifyMessage(Constants.BROADCAST_NEW_CONVERSE)
+    }
+
+
+    /**
+     * 查询会话记录
+     */
+    fun queryConvers() {
+        converseList.clear()
+        converseList.addAll(SMClient.getInstance().dbManager.queryConverse())
     }
 
 
     fun getConverseList(): ArrayList<Chat> = converseList
 
-    fun getContactList():ArrayList<Contacts.Payload.Contact> = contactList
+    fun getContactList(): ArrayList<Contacts.Payload.Contact> = contactList
 
 
-    private fun notifyMessage() {
-        val intent = Intent(Constants.BROADCAST_NEW_MESSAGE)
+    private fun notifyMessage(flag: String) {
+        val intent = Intent(flag)
         MyApplication.instance.sendBroadcast(intent)
     }
 
     /**
-     * 添加消息并刷新
+     * 存储消息并刷新
      */
     fun addMessage(messageChat: Chat) {
         SMClient.getInstance().dbManager.saveMessage(messageChat) //保存消息到数据库
-        val username = messageChat.from
-        if (messageMap[username] == null) {
-            val messageList = ArrayList<Chat>()
-            messageList.add(messageChat)
-            messageMap.put(username, messageList)
-        } else {
-            messageMap[username]?.add(messageChat)
-        }
-        notifyMessage()
+        messageList.add(messageChat)
+        notifyMessage(Constants.BROADCAST_NEW_MESSAGE)
+        //加入会话中
+        addConverse(messageChat)
     }
 
 

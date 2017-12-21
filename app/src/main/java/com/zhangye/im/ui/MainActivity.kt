@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity(), OnConnListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         SMClient.getInstance().webSocketManager.connect(this)
+        supportFragmentManager.beginTransaction().replace(R.id.fl_content, ConverseFragment()).commit()
 
         radio_group.setOnCheckedChangeListener { group, checkedId ->
 
@@ -52,8 +53,9 @@ class MainActivity : AppCompatActivity(), OnConnListener {
             startActivity(Intent(this@MainActivity, LoginActivity::class.java))
             finish()
         }
-
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        runOnUiThread {
+            Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
+        }
 
     }
 

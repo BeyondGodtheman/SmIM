@@ -41,4 +41,12 @@ class PreferencesManager {
         createPreferences(Constants.IM_LOGIN).edit().remove(Constants.IM_LOGIN_INFO).apply()
     }
 
+    //设置联系人版本号
+    fun setContactVersion(varsion: String) {
+        createPreferences(SMClient.getInstance().userManager.getFqdnName()).edit().putString(Constants.CONTACT_VERSION, varsion).apply()
+    }
+
+    //获取当前联系人版本号
+    fun getContactVersion(): String = createPreferences(Constants.IM_LOGIN).getString(Constants.CONTACT_VERSION, "-1")
+
 }

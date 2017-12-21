@@ -1,5 +1,7 @@
 package com.zhangye.im.model
 
+import com.zhangye.im.SMClient
+
 
 /**
  * 消息数据
@@ -13,6 +15,7 @@ class Chat : Message() {
 
     var state = false
     var payload = Payload()
+    var converse = if (from != SMClient.getInstance().userManager.getFqdnName()) from else to
 
     class Payload {
         var timestamp = System.currentTimeMillis()
@@ -32,11 +35,19 @@ class Chat : Message() {
 
     override fun equals(other: Any?): Boolean {
         if (other is Chat) {
-            if (from == other.from || to == other.from) {
+//
+            if (converse == other.converse) {
                 return true
             }
         }
         return false
+    }
+
+    override fun hashCode(): Int {
+        var result = state.hashCode()
+        result = 31 * result + payload.hashCode()
+        result = 31 * result + converse.hashCode()
+        return result
     }
 
 

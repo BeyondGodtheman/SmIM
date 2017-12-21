@@ -33,13 +33,24 @@
             android:layout_height="match_parent"
             android:background="@color/line_gray" />
 
-        <EditText
-            android:id="@id/edt_msg"
-            android:layout_width="0dp"
+        <Button
+            android:id="@id/btn_record"
+            android:layout_width="695pt"
             android:layout_height="106pt"
             android:layout_gravity="center_vertical"
             android:layout_marginStart="24pt"
-            android:layout_weight="1"
+            android:background="@drawable/bg_eidt_message"
+            android:paddingEnd="24pt"
+            android:paddingStart="24pt"
+            android:text="@string/send"
+            android:visibility="gone"/>
+
+        <EditText
+            android:id="@id/edt_msg"
+            android:layout_width="695pt"
+            android:layout_height="106pt"
+            android:layout_gravity="center_vertical"
+            android:layout_marginStart="24pt"
             android:background="@drawable/bg_eidt_message"
             android:hint="@string/inputMessage"
             android:imeOptions="actionSend"
@@ -53,33 +64,32 @@
             android:layout_width="80pt"
             android:layout_height="80pt"
             android:layout_gravity="center_vertical"
-            android:layout_marginEnd="26pt"
-            android:layout_marginStart="30pt"
+            android:layout_marginStart="20pt"
             android:background="@drawable/bg_face_input"
             android:button="@null" />
 
 
-        <ImageView
-            android:id="@+id/iv_add"
+        <CheckBox
+            android:id="@+id/cb_add"
             android:layout_width="80pt"
             android:layout_height="80pt"
             android:layout_gravity="center_vertical"
-            android:layout_marginEnd="20pt"
-            android:contentDescription="@null"
-            android:scaleType="fitXY"
-            android:src="@mipmap/icon_input_add"/>
+            android:layout_marginStart="30pt"
+            android:button="@null"
+            android:background="@mipmap/icon_input_add" />
 
-        <Button
-            android:id="@+id/btn_send"
-            android:layout_width="160pt"
+        <TextView
+            android:id="@+id/tv_send"
+            android:layout_width="100pt"
             android:layout_height="80pt"
             android:layout_gravity="center_vertical"
-            android:layout_marginEnd="20pt"
+            android:layout_marginStart="15pt"
             android:background="@drawable/bg_chat_send_btn"
+            android:gravity="center"
             android:text="@string/send"
             android:textColor="#666666"
-            android:textSize="40pt"
-            android:visibility="gone"/>
+            android:textSize="35pt"
+            android:visibility="gone" />
 
 
     </LinearLayout>

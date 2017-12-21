@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <item name="btn_login" type="id" />
-    <item name="btn_login_out" type="id"/>
-    <item name="btn_send" type="id"/>
+    <item name="btn_login_out" type="id" />
+    <item name="btn_send" type="id" />
     <item name="edt_username" type="id" />
     <item name="edt_password" type="id" />
 
@@ -12,10 +12,19 @@
     <item name="tv_code" type="id" />
     <item name="recycleView" type="id" />
 
-    <item name="edt_msg" type="id"/>
+    <item name="edt_msg" type="id" />
+    <item name="edt_content" type="id" />
 
-    <item name="ll_sendMessage" type="id"/>
 
-    <item name="fl_content" type="id"/>
+    <item name="ll_sendMessage" type="id" />
+
+    <item name="fl_content" type="id" />
     <item name="iv_faild" type="id" />
+    <item name="iv_photo" type="id" />
+    <item name="btn_add_friend" type="id" />
+    <item name="btn_record" type="id" />
+
+    <item name="btn_yes" type="id" />
+
+    <item name="btn_no" type="id" />
 </resources>

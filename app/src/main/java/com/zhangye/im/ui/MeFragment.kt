@@ -8,8 +8,6 @@ import android.view.View
 import android.view.ViewGroup
 import com.zhangye.im.R
 import com.zhangye.im.SMClient
-import com.zhangye.im.utils.UserManager
-import com.zhangye.im.utils.WebSocketManager
 import kotlinx.android.synthetic.main.fragment_me.view.*
 
 /**

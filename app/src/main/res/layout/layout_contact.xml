@@ -5,8 +5,13 @@
     android:orientation="vertical">
 
     <Button
-        android:id="@id/btn_login_out"
+        android:id="@id/btn_add_friend"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/login_out" />
+        android:text="@string/new_friend" />
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@id/recycleView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
 </LinearLayout>

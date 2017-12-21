@@ -67,10 +67,10 @@ abstract class ChatPrimaryMenuBase : RelativeLayout {
      * hide keyboard
      */
     fun hideKeyboard() {
-        if ((context as Activity).window.attributes.softInputMode != WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN) {
-            if ((context as Activity).currentFocus != null)
-                inputManager?.hideSoftInputFromWindow((context as Activity).currentFocus!!.windowToken, InputMethodManager.HIDE_NOT_ALWAYS)
-        }
+//        if ((context as Activity).window.attributes.softInputMode != WindowManager.LayoutParams.SOFT_INPUT_STATE_HIDDEN) {
+//            if ((context as Activity).currentFocus != null)
+                inputManager?.hideSoftInputFromWindow(windowToken, InputMethodManager.HIDE_NOT_ALWAYS)
+//        }
     }
 
 
@@ -96,12 +96,12 @@ abstract class ChatPrimaryMenuBase : RelativeLayout {
         /**
          * toggle on/off extend menu
          */
-        fun onToggleExtendClicked()
+        fun onToggleExtendClicked(boolean: Boolean)
 
         /**
          * toggle on/off emoji icon
          */
-        fun onToggleEmojClicked()
+        fun onToggleEmojClicked(boolean: Boolean)
 
         /**
          * on text input is clicked

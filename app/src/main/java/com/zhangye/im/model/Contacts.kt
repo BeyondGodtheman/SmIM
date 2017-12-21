@@ -21,7 +21,7 @@ class Contacts(subType: IQType,
                 var nickname: String,
                 var type: String,
                 var status: String,
-                var version: Int
+                var version: String
         )
 
         override fun toString(): String {

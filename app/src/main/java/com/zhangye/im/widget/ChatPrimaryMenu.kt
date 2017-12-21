@@ -1,7 +1,9 @@
 package com.zhangye.im.widget
 
 import android.content.Context
+import android.text.Editable
 import android.text.TextUtils
+import android.text.TextWatcher
 import android.util.AttributeSet
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -38,44 +40,68 @@ open class ChatPrimaryMenu : ChatPrimaryMenuBase, View.OnClickListener {
 
     private fun init(context: Context) {
         LayoutInflater.from(context).inflate(R.layout.widget_chat_primary_menu, this)
-//        buttonSetModeKeyboard = findViewById(R.id.btn_set_mode_keyboard)
-//        edittext_layout = findViewById(R.id.edittext_layout) as RelativeLayout
-//        buttonSetModeVoice = findViewById(R.id.btn_set_mode_voice)
-//        buttonSend = findViewById(R.id.btn_send)
-//        buttonPressToSpeak = findViewById(R.id.btn_press_to_speak)
-//        faceNormal = findViewById(R.id.iv_face_normal) as ImageView
         edt_msg.setOnClickListener(this)
+        edt_msg.requestFocus()
+        //发送按钮事件
+        tv_send.setOnClickListener(this)
+
+
         //表情键盘切换
         cb_face.setOnCheckedChangeListener({ _: CompoundButton, b: Boolean ->
 
-            if (cb_type.isChecked) {
+            if (b) {
+                cb_add.isChecked = false
                 cb_type.isChecked = false
             }
-
-            listener?.onToggleEmojClicked()
+            listener?.onToggleEmojClicked(b)
         })
 
         //录音
         cb_type.setOnCheckedChangeListener({ _: CompoundButton, b: Boolean ->
-            if (cb_face.isChecked) {
+
+
+            LogUtils.i("点击消息类型：$b")
+
+            if (b) {
                 cb_face.isChecked = false
+                cb_add.isChecked = false
+
+                tv_send.visibility = View.GONE
+                cb_add.visibility = View.VISIBLE
+
+                edt_msg.visibility = View.GONE
+                btn_record.visibility = View.VISIBLE
+
+                hideKeyboard()
+
+
+            } else {
+                edt_msg.visibility = View.VISIBLE
+                btn_record.visibility = View.GONE
+
+                if (edt_msg.text.isNotEmpty()) {
+                    tv_send.visibility = View.VISIBLE
+                    cb_add.visibility = View.GONE
+                }
+
+                edt_msg.requestFocus()
             }
         })
 
-//        val faceLayout = findViewById(R.id.rl_face) as RelativeLayout
-//        buttonMore = findViewById(R.id.btn_more) as Button
-//        edittext_layout?.setBackgroundResource(R.drawable.ease_input_bar_bg_normal)
-
-//        buttonSend!!.setOnClickListener(this)
-//        buttonSetModeKeyboard!!.setOnClickListener(this)
-//        buttonSetModeVoice!!.setOnClickListener(this)
-//        buttonMore?.setOnClickListener(this)
-//        faceLayout.setOnClickListener(this)
-        edt_msg.setOnClickListener(this)
-        edt_msg.requestFocus()
+        //扩展类型事件
+        cb_add.setOnCheckedChangeListener({ _: CompoundButton, b: Boolean ->
 
 
+            if (b) {
+                cb_face.isChecked = false
+                cb_type.isChecked = false
+            }
 
+            listener?.onToggleExtendClicked(b)
+        })
+
+
+        //拦截键盘事件
         edt_msg.setOnKeyListener { _, keyCode, event ->
             LogUtils.d("keyCode:" + keyCode + " action:" + event.action)
 
@@ -90,8 +116,8 @@ open class ChatPrimaryMenu : ChatPrimaryMenuBase, View.OnClickListener {
             false
         }
 
+        //拦截键盘事件
         edt_msg.setOnEditorActionListener { v, actionId, event ->
-            //            LogUtils.d("keyCode:" + event.keyCode + " action" + event.action + " ctrl:" + ctrlPress)
             if (actionId == EditorInfo.IME_ACTION_SEND || event.keyCode == KeyEvent.KEYCODE_ENTER && event.action == KeyEvent.ACTION_DOWN && ctrlPress) {
                 val s = edt_msg.text.toString()
                 edt_msg.setText("")
@@ -102,12 +128,32 @@ open class ChatPrimaryMenu : ChatPrimaryMenuBase, View.OnClickListener {
             }
         }
 
+        //根据输入切换按钮
+        edt_msg.addTextChangedListener(object : TextWatcher {
 
-        buttonPressToSpeak?.setOnTouchListener { v, event ->
-            if (listener != null) {
-                listener?.onPressToSpeakBtnTouch(v, event)!!
-            } else false
-        }
+            override fun onTextChanged(s: CharSequence, start: Int, before: Int, count: Int) {
+                if (!TextUtils.isEmpty(s)) {
+                    cb_add.visibility = View.GONE
+                    tv_send.visibility = View.VISIBLE
+                } else {
+                    cb_add.visibility = View.VISIBLE
+                    tv_send.visibility = View.GONE
+                }
+            }
+
+            override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
+
+            override fun afterTextChanged(s: Editable) {
+
+            }
+        })
+
+
+//        buttonPressToSpeak?.setOnTouchListener { v, event ->
+//            if (listener != null) {
+//                listener?.onPressToSpeakBtnTouch(v, event)!!
+//            } else false
+//        }
     }
 
     /**
@@ -141,11 +187,19 @@ open class ChatPrimaryMenu : ChatPrimaryMenuBase, View.OnClickListener {
      */
     override fun onClick(view: View) {
 
-        when(view.id){
-            edt_msg.id ->{
-                cb_face.isChecked = false
+        when (view.id) {
+            edt_msg.id -> {
                 listener?.onEditTextClicked()
             }
+
+            tv_send.id -> {
+                if (listener != null) {
+                    val s = edt_msg.text.toString()
+                    edt_msg.setText("")
+                    listener?.onSendBtnClicked(s)
+                }
+            }
+
         }
 
 //        val id = view.id
@@ -210,18 +264,18 @@ open class ChatPrimaryMenu : ChatPrimaryMenuBase, View.OnClickListener {
     fun setModeKeyboard() {
 //            edittext_layout!!.visibility = View.VISIBLE
 //            buttonSetModeKeyboard!!.visibility = View.GONE
-        buttonSetModeVoice!!.visibility = View.VISIBLE
+//        buttonSetModeVoice!!.visibility = View.VISIBLE
         // mEditTextContent.setVisibility(View.VISIBLE);
         edt_msg.requestFocus()
         // buttonSend.setVisibility(View.VISIBLE);
-        buttonPressToSpeak!!.visibility = View.GONE
-        if (TextUtils.isEmpty(edt_msg.text)) {
-            buttonMore!!.visibility = View.VISIBLE
-            buttonSend!!.visibility = View.GONE
-        } else {
-            buttonMore!!.visibility = View.GONE
-            buttonSend!!.visibility = View.VISIBLE
-        }
+//        buttonPressToSpeak!!.visibility = View.GONE
+//        if (TextUtils.isEmpty(edt_msg.text)) {
+//            buttonMore!!.visibility = View.VISIBLE
+//            buttonSend!!.visibility = View.GONE
+//        } else {
+//            buttonMore!!.visibility = View.GONE
+//            buttonSend!!.visibility = View.VISIBLE
+//        }
 
     }
 

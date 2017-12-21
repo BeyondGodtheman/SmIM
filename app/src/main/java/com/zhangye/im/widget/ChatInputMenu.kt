@@ -13,6 +13,7 @@ import com.zhangye.im.model.Emoj
 import com.zhangye.im.model.EmojDatas
 import com.zhangye.im.model.EmojGroupEntity
 import com.zhangye.im.utils.SmileUtils
+import kotlinx.android.synthetic.main.widget_chat_primary_menu.view.*
 
 /**
  *
@@ -76,7 +77,6 @@ class ChatInputMenu : LinearLayout {
 
         processChatMenu()
         chatExtendMenu.init()
-
         inited = true
     }
 
@@ -158,12 +158,12 @@ class ChatInputMenu : LinearLayout {
                 hideExtendMenuContainer()
             }
 
-            override fun onToggleExtendClicked() {
-                toggleMore()
+            override fun onToggleExtendClicked(boolean: Boolean) {
+                toggleMore(boolean)
             }
 
-            override fun onToggleEmojClicked() {
-                toggleEmoj()
+            override fun onToggleEmojClicked(boolean: Boolean) {
+                toggleEmoj(boolean)
             }
 
             override fun onEditTextClicked() {
@@ -211,14 +211,14 @@ class ChatInputMenu : LinearLayout {
      * show or hide extend menu
      *
      */
-    private fun toggleMore() {
-        if (chatExtendMenuContainer.visibility == View.GONE) {
+    private fun toggleMore(boolean: Boolean) {
+        if (boolean) {
             hideKeyboard()
-            handler.postDelayed({
-                chatExtendMenuContainer.visibility = View.VISIBLE
-                chatExtendMenu.visibility = View.VISIBLE
-                emojMenu.visibility = View.GONE
-            }, 50)
+
+            chatExtendMenuContainer.visibility = View.VISIBLE
+            chatExtendMenu.visibility = View.VISIBLE
+            emojMenu.visibility = View.GONE
+
         } else {
             if (emojMenu.visibility == View.VISIBLE) {
                 emojMenu.visibility = View.GONE
@@ -232,14 +232,14 @@ class ChatInputMenu : LinearLayout {
     /**
      * show or hide emojicon
      */
-    private fun toggleEmoj() {
-        if (chatExtendMenuContainer.visibility == View.GONE) {
+    private fun toggleEmoj(boolean: Boolean) {
+        if (boolean) {
             hideKeyboard()
             handler.postDelayed({
                 chatExtendMenuContainer.visibility = View.VISIBLE
                 chatExtendMenu.visibility = View.GONE
                 emojMenu.visibility = View.VISIBLE
-            }, 50)
+            }, 0)
         } else {
             if (emojMenu.visibility == View.VISIBLE) {
                 chatExtendMenuContainer.visibility = View.GONE
@@ -263,9 +263,9 @@ class ChatInputMenu : LinearLayout {
      * hide extend menu
      */
     fun hideExtendMenuContainer() {
-        chatExtendMenu.visibility = View.GONE
-        emojMenu.visibility = View.GONE
-        chatExtendMenuContainer.visibility = View.GONE
+        cb_face.isChecked = false
+        cb_type.isChecked = false
+        cb_add.isChecked = false
     }
 
     /**
@@ -275,11 +275,11 @@ class ChatInputMenu : LinearLayout {
      * true --extend menu is off
      */
     fun onBackPressed(): Boolean {
-        if (chatExtendMenuContainer.visibility == View.VISIBLE) {
+        return if (chatExtendMenuContainer.visibility == View.VISIBLE) {
             hideExtendMenuContainer()
-            return false
+            false
         } else {
-            return true
+            true
         }
 
     }

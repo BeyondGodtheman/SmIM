@@ -25,6 +25,7 @@ class UserManager {
         json.put("password", password)
         HttpUtil.postJson(json.toString(), Constants.LOGIN).enqueue(object : Callback {
             override fun onFailure(call: Call?, e: IOException) {
+                LogUtils.i("网络请求失败：" + e)
                 onLoginListener?.onLoginResult(false, e.localizedMessage)
             }
 
@@ -85,12 +86,15 @@ class UserManager {
     //获取用戶NAME
     fun getSenderUsername(): String = login?.entity?.username ?: ""
 
-    fun getFqdnName():String = login?.entity?.fqdnName?:""
+    //获取@类型的账户
+    fun getFqdnName(): String = login?.entity?.fqdnName ?: ""
 
     //获取链接URL
     fun getImUrl(): String = login?.entity?.cmUrl ?: ""
+
     //获取认证TOKEN
     fun getToken(): String = login?.entity?.loginToken ?: ""
+
     //获取链接管理器NAME
     fun getCmName(): String = login?.entity?.cmFqdn ?: ""
 

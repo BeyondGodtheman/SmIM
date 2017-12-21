@@ -10,6 +10,7 @@ import com.zhangye.im.R
 import com.zhangye.im.SMClient
 import com.zhangye.im.model.Chat
 import com.zhangye.im.utils.DateFormat
+import com.zhangye.im.utils.SmileUtils
 
 /**
  * 聊天适配器
@@ -31,22 +32,23 @@ class ChatAdapter(private var list: ArrayList<Chat>) : RecyclerView.Adapter<Chat
 
     override fun getItemCount(): Int = list.size
 
-    override fun onBindViewHolder(holder: ViewHolder?, position: Int) {
+    override fun onBindViewHolder(holder: ViewHolder, position: Int) {
 
-        holder?.tvName?.text = ("${list[position].from}  ${DateFormat.formatHHmm(list[position].payload.timestamp)}")
-        holder?.tvMessage?.text = list[position].payload.content
+        holder.tvName.text = ("${list[position].from}  ${DateFormat.formatHHmm(list[position].payload.timestamp)}")
+        val sapner = SmileUtils.getSmiledText(holder.itemView.context!!, list[position].payload.content)
+        holder.tvMessage.setText(sapner, TextView.BufferType.SPANNABLE)
 
         if (getItemViewType(position) == SEND) {
-            holder?.ivAvatar?.setImageResource(R.mipmap.default_head)
+            holder.ivAvatar.setImageResource(R.mipmap.default_head)
 
-            if(list[position].state){
-                holder?.ivFaild?.visibility = View.GONE
-            }else{
-                holder?.ivFaild?.visibility = View.VISIBLE
+            if (list[position].state) {
+                holder.ivFaild?.visibility = View.GONE
+            } else {
+                holder.ivFaild?.visibility = View.VISIBLE
             }
 
         } else {
-            holder?.ivAvatar?.setImageResource(R.mipmap.rt_head)
+            holder.ivAvatar.setImageResource(R.mipmap.rt_head)
         }
     }
 
@@ -55,7 +57,7 @@ class ChatAdapter(private var list: ArrayList<Chat>) : RecyclerView.Adapter<Chat
         var tvName: TextView = itemView.findViewById(R.id.tv_name)
         var ivAvatar: ImageView = itemView.findViewById(R.id.iv_avatar)
         var tvMessage: TextView = itemView.findViewById(R.id.tv_message)
-        var ivFaild:ImageView? = itemView.findViewById(R.id.iv_faild)
+        var ivFaild: ImageView? = itemView.findViewById(R.id.iv_faild)
     }
 
 

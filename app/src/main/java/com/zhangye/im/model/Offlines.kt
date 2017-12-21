@@ -9,38 +9,29 @@ class Offlines(subType: IQType,
                operation: OperationType) : IQ(subType, entity, operation) {
 
 
-    var otherList: ArrayList<Orther> = arrayListOf()
+    var payload = Payload()
+
+    class Payload {
+        var otherList: ArrayList<OrtherList> = arrayListOf()
+        var chatList = arrayListOf<ChatList>()
 
 
-    class Orther(subType: IQType,
-                 entity: EntityType,
-                 operation: OperationType) : IQ(subType, entity, operation) {
-
-        var payload = Payload()
-
-        class Payload {
-            var answer = false
-            var isApply = false
-            var groupCode = ""
-            var memberList = arrayListOf<String>()
-
+        class ChatList {
+            var peer = ""
+            var messageList = ArrayList<Chat>()
             override fun toString(): String {
-                return "Payload(answer=$answer, isApply=$isApply, groupCode='$groupCode', memberList=$memberList)"
+                return "ChatList(peer='$peer', messageList=$messageList)"
             }
-
-
-        }
-
-        override fun toString(): String {
-            return "Orther(payload=$payload) ${super.toString()}"
         }
 
 
+        class OrtherList(subType: IQType,
+                         entity: EntityType,
+                         operation: OperationType) : IQ(subType, entity, operation) {
+
+            var payload = ""
+
+        }
+
     }
-
-    override fun toString(): String {
-        return "Offlines(otherList=$otherList) ${super.toString()}"
-    }
-
-
 }
