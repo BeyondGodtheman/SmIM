@@ -10,6 +10,9 @@
     <item name="tv_content" type="id" />
     <item name="tv_time" type="id" />
     <item name="tv_code" type="id" />
+    <item name="tv_title" type="id" />
+    <item name="tv_back" type="id"/>
+
     <item name="recycleView" type="id" />
 
     <item name="edt_msg" type="id" />
@@ -27,4 +30,7 @@
     <item name="btn_yes" type="id" />
 
     <item name="btn_no" type="id" />
+
+    <item name="rl_title" type="id" />
+
 </resources>

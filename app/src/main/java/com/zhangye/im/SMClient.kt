@@ -7,12 +7,8 @@ import com.qiniu.android.storage.Configuration
 import com.qiniu.android.storage.UploadManager
 import com.zhangye.im.`interface`.OnContactListener
 import com.zhangye.im.db.DBManager
-import com.zhangye.im.utils.PreferencesManager
-import com.zhangye.im.utils.UserManager
-import com.zhangye.im.utils.WebSocketManager
+import com.zhangye.im.utils.*
 import com.zhangye.im.widget.RudenessScreenHelper
-
-
 
 
 /**
@@ -25,7 +21,10 @@ class SMClient private constructor() {
     val prefrencesManager = PreferencesManager() //存储管理
     val dbManager = DBManager() //SQLite管理类
     val userManager = UserManager()//用户管理类
+    val pathUtil = PathUtil()
+
     lateinit var uploadManager: UploadManager
+
     companion object {
         fun getInstance() = SingleClient.client
     }
@@ -46,7 +45,7 @@ class SMClient private constructor() {
     }
 
 
-    fun close(){
+    fun close() {
         webSocketManager.exitWebSocket()
         dbManager.close()
     }

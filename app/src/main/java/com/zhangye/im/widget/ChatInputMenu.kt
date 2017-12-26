@@ -172,9 +172,7 @@ class ChatInputMenu : LinearLayout {
 
 
             override fun onPressToSpeakBtnTouch(v: View, event: MotionEvent): Boolean {
-                return if (listener != null) {
-                    listener!!.onPressToSpeakBtnTouch(v, event)
-                } else false
+                return listener?.onPressToSpeakBtnTouch(v, event) ?: false
             }
         })
 

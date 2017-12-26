@@ -17,6 +17,7 @@ import okio.ByteString
 import java.io.EOFException
 import java.net.ConnectException
 import java.net.NoRouteToHostException
+import java.net.SocketException
 import java.net.SocketTimeoutException
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
@@ -31,6 +32,7 @@ class WebSocketManager {
     var isConnection = false
     var isOnline = false
     var isSend = false
+    var reConntCount = 0 //重连次数
     //    private val messageMap = HashMap<String, ArrayList<Chat>>()
     private val messageQueue = LinkedBlockingQueue<Chat>() //消息列队
     private val converseList = arrayListOf<Chat>() //会话列表
@@ -62,11 +64,19 @@ class WebSocketManager {
             }
 
             override fun onFailure(webSocket: WebSocket?, t: Throwable, response: Response?) {
+                isConnection = false
+                isOnline = false
 
                 if (t is ConnectException) {
                     connListener?.onError(0, "连接IM服务器失败")
                 }
                 if (t is SocketTimeoutException) {
+                    if (reConntCount == 2) {
+                        reConntCount = 0
+                        connListener?.onError(Constants.LOGOUT, "重连失败，重新login")
+                        return
+                    }
+                    reConntCount++
                     connect(connListener)
                     connListener?.onError(0, "连接IM服务器超时")
                 }
@@ -80,6 +90,10 @@ class WebSocketManager {
                 if (t is NoRouteToHostException) {
                     connListener?.onError(Constants.LOGOUT, "服务器地址失效")
                     connect(connListener)
+                }
+
+                if (t is SocketException) {
+                    connListener?.onError(Constants.NET_FILE, "网络连接异常")
                 }
 
                 LogUtils.i("连接异常:" + t)
@@ -105,10 +119,6 @@ class WebSocketManager {
                 if (message.type == Type.PRESENT.type) {
                     isOnline = true
                     connListener?.onSuccess() //登录成功回调
-                    //查询会话列表
-                    queryConvers()
-                    //更新通讯录
-                    queryContact()
                     //查询离线消息
                     queryOffLine()
                     //轮循发送的消息列队
@@ -156,10 +166,11 @@ class WebSocketManager {
                             val contacts = gJson.fromJson(messageStr, Contacts::class.java)
                             //保存联系人版本号
                             SMClient.getInstance().prefrencesManager.setContactVersion(contacts.payload.version)
-                            contactList.clear()
                             SMClient.getInstance().dbManager.saveContact(contacts.payload.addList)
                             SMClient.getInstance().dbManager.deleteContact(contacts.payload.removeList)
-                            contactList.addAll(SMClient.getInstance().dbManager.queryContacts())
+                            //更改内存中的联系人数据
+                            contactList.removeAll(contacts.payload.removeList)
+                            contactList.addAll(contacts.payload.addList)
                             notifyMessage(Constants.BROADCAST_NEW_CONTACT)
                         }
 
@@ -169,9 +180,9 @@ class WebSocketManager {
                             addFriendListener = null
                         }
 
-                        if(iq.action.operation == OperationType.ANSWER.type){
+                        if (iq.action.operation == OperationType.ANSWER.type) {
 
-                            queryContact()
+                            queryNetContact()
                         }
                     }
 
@@ -236,12 +247,10 @@ class WebSocketManager {
     fun exitWebSocket() {
         webSocket?.close(1000, "logout")
         webSocket?.cancel()
-//        messageMap.clear()
         isConnection = false
         isOnline = false
         connListener = null
 
-//        messageMap.clear()//消息列队
         messageQueue.clear()//消息列队
         converseList.clear()//会话列表
         contactList.clear()//联系人列表
@@ -289,9 +298,9 @@ class WebSocketManager {
     }
 
     /**
-     * 查询联系人
+     * 网络查询联系人
      */
-    fun queryContact() {
+    fun queryNetContact() {
         if (isConnection && isOnline) {
             val iQ = IQ.IQContacts()
             val json = gJson.toJson(iQ)
@@ -390,9 +399,21 @@ class WebSocketManager {
     }
 
 
-    fun getConverseList(): ArrayList<Chat> = converseList
+    fun queryContacts() {
+        contactList.clear()
+        contactList.addAll(SMClient.getInstance().dbManager.queryContacts())
+    }
 
-    fun getContactList(): ArrayList<Contacts.Payload.Contact> = contactList
+
+    fun getConverseList(): ArrayList<Chat> {
+        queryConvers() //本地查询会话列表
+        return converseList
+    }
+
+    fun getContactList(): ArrayList<Contacts.Payload.Contact> {
+        queryContacts()//本地查询联系人列表
+        return contactList
+    }
 
 
     private fun notifyMessage(flag: String) {

@@ -2,18 +2,32 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#f2f4f5">
+    android:background="#ebebeb">
+
+    <include
+        android:id="@id/rl_title"
+        layout="@layout/layout_simple_title"/>
+
 
     <android.support.v7.widget.RecyclerView
         android:id="@id/recycleView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/input_menu" />
+        android:layout_above="@id/input_menu"
+        android:layout_below="@id/rl_title" />
+
+
+    <com.zhangye.im.widget.VoiceRecorderView
+        android:id="@+id/recorderView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:visibility="invisible"/>
 
 
     <com.zhangye.im.widget.ChatInputMenu
         android:id="@+id/input_menu"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"/>
+        android:layout_alignParentBottom="true" />
 </RelativeLayout>

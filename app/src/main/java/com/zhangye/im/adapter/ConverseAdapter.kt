@@ -15,6 +15,7 @@ import com.zhangye.im.model.Message
 import com.zhangye.im.model.MessageType
 import com.zhangye.im.ui.ChatActivity
 import com.zhangye.im.utils.DateFormat
+import com.zhangye.im.utils.SmileUtils
 
 /**
  * 会话列表
@@ -27,24 +28,27 @@ class ConverseAdapter(var list: ArrayList<Chat>) : RecyclerView.Adapter<Converse
         return ConverseAdapter.ViewHolder(view)
     }
 
-    override fun onBindViewHolder(holder: ConverseAdapter.ViewHolder?, position: Int) {
+    override fun onBindViewHolder(holder: ConverseAdapter.ViewHolder, position: Int) {
         if (list[position].subType == MessageType.CHAT.type) {
             val chat = list[position]
             userName = chat.converse
             val contact = SMClient.getInstance().dbManager.queryContact(userName.split("@")[0])
             if (contact != null) {
-                holder?.tvName?.text = contact.nickname
+                holder.tvName?.text = contact.nickname
             } else {
-                holder?.tvName?.text = "陌生人"
+                holder.tvName?.text = "陌生人"
             }
 
-            holder?.tvContent?.text = chat.payload.content
-            holder?.tvTime?.text = DateFormat.formatHHmm(chat.payload.timestamp)
+            holder.tvContent?.text = SmileUtils.getSmiledText(holder.tvContent?.context!!,chat.payload.content)
+            holder.tvTime?.text = DateFormat.formatHHmm(chat.payload.timestamp)
 
-            holder?.itemView?.tag = position
-            holder?.itemView?.setOnClickListener {
+            holder.itemView?.tag = position
+            holder.itemView?.setOnClickListener {
                 val intent = Intent(holder.itemView.context, ChatActivity::class.java)
-                intent.putExtra("userName", (list[it.tag as Int] as Chat).converse)
+
+                intent.putExtra("userName",  contact?.username)
+                intent.putExtra("nickName",  contact?.nickname)
+
                 holder.itemView.context.startActivity(intent)
             }
         }

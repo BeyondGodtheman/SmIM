@@ -30,9 +30,6 @@ class ContactFragment : BaseFragment(), View.OnClickListener {
         convertView = inflater.inflate(R.layout.layout_contact, container, false)
         convertView.recycleView.layoutManager = LinearLayoutManager(activity)
         convertView.recycleView.adapter = ContactAdapter(SMClient.getInstance().webSocketManager.getContactList())
-        convertView.btn_add_friend.setOnClickListener {
-            startActivity(Intent(activity, AddFriendActivity::class.java))
-        }
         return convertView
     }
 

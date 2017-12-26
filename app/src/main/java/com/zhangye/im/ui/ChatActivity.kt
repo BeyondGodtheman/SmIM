@@ -10,9 +10,12 @@ import com.zhangye.im.SMClient
 import com.zhangye.im.adapter.ChatAdapter
 import com.zhangye.im.model.Emoj
 import com.zhangye.im.utils.Constants
+import com.zhangye.im.utils.PermissionsManager
 import com.zhangye.im.widget.ChatExtendMenu
 import com.zhangye.im.widget.ChatInputMenu
+import com.zhangye.im.widget.VoiceRecorderView
 import kotlinx.android.synthetic.main.activity_chat.*
+import kotlinx.android.synthetic.main.layout_simple_title.*
 
 /**
  * 聊天界面
@@ -34,16 +37,25 @@ class ChatActivity : BaseActivity() {
     override fun initView() {
         setContentView(R.layout.activity_chat)
 
-        val userName = intent.getStringExtra("userName")
-        val tenantDomain = intent.getStringExtra("tenantDomain") ?: Constants.FQDN_NAME
-        val fqdnName = if (!userName.contains("@")) "$userName@$tenantDomain" else userName
+        SMClient.getInstance().pathUtil.initDirs(this) //初始化存储路径
+
+        val userName = intent.getStringExtra("userName") ?: ""
+        val fqdnName = if (!userName.contains("@")) "$userName${Constants.FQDN_NAME}" else userName
+        val nickName = intent.getStringExtra("nickName") ?: ""
+        tv_title.text = nickName
 
         LogUtils.i("和 $fqdnName 聊天")
 
         recycleView.layoutManager = LinearLayoutManager(this)
+//        (recycleView.layoutManager as LinearLayoutManager).stackFromEnd = true
         val adapter = ChatAdapter(SMClient.getInstance().webSocketManager.getMessageList(fqdnName))
         recycleView.adapter = adapter
         recycleView.scrollToPosition(recycleView.adapter.itemCount - 1)
+
+
+        tv_back.setOnClickListener {
+            finish()
+        }
 
         input_menu.initMenu(null) //初始化菜单
         input_menu.setChatInputMenuListener(object : ChatInputMenu.ChatInputMenuListener {
@@ -62,7 +74,13 @@ class ChatActivity : BaseActivity() {
             }
 
             override fun onPressToSpeakBtnTouch(v: View, event: MotionEvent): Boolean {
-                return false
+                return recorderView.onPressToSpeakBtnTouch(v, event, object : VoiceRecorderView.VoiceRecorderCallback {
+                    override fun onVoiceRecordComplete(voiceFilePath: String, voiceTimeLength: Int) {
+
+                    }
+
+                })
+
             }
 
         })
@@ -86,5 +104,9 @@ class ChatActivity : BaseActivity() {
         if (input_menu.onBackPressed()) {
             finish()
         }
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
+        PermissionsManager.instance.notifyPermissionsChange(permissions, grantResults)
     }
 }

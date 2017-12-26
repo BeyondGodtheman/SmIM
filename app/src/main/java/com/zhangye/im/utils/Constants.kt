@@ -10,7 +10,7 @@ object Constants {
     val LOGIN = "app_manage/user/login"
     val FQDN_NAME = "@shoumeiapp.com"
     val LOGOUT = 103 //code":103,"message":"需要先登录，才能发消息"
-
+    val NET_FILE = 100 //自定义字段，网络不可用
     /*登录存储相关*/
     val IM_LOGIN_INFO = "im_login_info"
     val IM_LOGIN = "im_login"
@@ -21,4 +21,6 @@ object Constants {
 
     /*联系人版本*/
     val CONTACT_VERSION = "contact_version"
+
+    val FILE_INVALID = 401
 }

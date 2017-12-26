@@ -19,10 +19,7 @@ import kotlinx.android.synthetic.main.widget_chat_primary_menu.view.*
  * Created by zhangye on 2017/12/11.
  */
 open class ChatPrimaryMenu : ChatPrimaryMenuBase, View.OnClickListener {
-    private var buttonSetModeVoice: View? = null
-    private var buttonSend: View? = null
-    private var buttonPressToSpeak: View? = null
-    private var buttonMore: Button? = null
+
     private var ctrlPress = false
 
     constructor(context: Context, attrs: AttributeSet, defStyle: Int) : super(context, attrs, defStyle) {
@@ -149,17 +146,15 @@ open class ChatPrimaryMenu : ChatPrimaryMenuBase, View.OnClickListener {
         })
 
 
-//        buttonPressToSpeak?.setOnTouchListener { v, event ->
-//            if (listener != null) {
-//                listener?.onPressToSpeakBtnTouch(v, event)!!
-//            } else false
-//        }
+        btn_record.setOnTouchListener { v, event ->
+            return@setOnTouchListener listener?.onPressToSpeakBtnTouch(v, event) ?: false
+        }
     }
 
     /**
      * set recorder view when speak icon is touched
      */
-//    fun setPressToSpeakRecorderView(voiceRecorderView: EaseVoiceRecorderView) {
+//    fun setPressToSpeakRecorderView(voiceRecorderView: VoiceRecorderView) {
 //        val voiceRecorderView1 = voiceRecorderView
 //    }
 
@@ -251,11 +246,11 @@ open class ChatPrimaryMenu : ChatPrimaryMenuBase, View.OnClickListener {
     protected fun setModeVoice() {
         hideKeyboard()
 //            edittext_layout!!.visibility = View.GONE
-        buttonSetModeVoice!!.visibility = View.GONE
+//        buttonSetModeVoice!!.visibility = View.GONE
 //            buttonSetModeKeyboard!!.visibility = View.VISIBLE
-        buttonSend!!.visibility = View.GONE
-        buttonMore!!.visibility = View.VISIBLE
-        buttonPressToSpeak!!.visibility = View.VISIBLE
+//        buttonSend!!.visibility = View.GONE
+//        buttonMore!!.visibility = View.VISIBLE
+//        buttonPressToSpeak!!.visibility = View.VISIBLE
     }
 
     /**
